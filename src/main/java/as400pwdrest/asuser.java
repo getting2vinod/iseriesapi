@@ -8,12 +8,18 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Properties;
+import javax.crypto.SecretKey;
+import javax.crypto.KeyGenerator;
+
+
 
 
 
 public class asuser {
 
     private static Properties prop = new Properties();
+
+
 
 
 
@@ -26,15 +32,23 @@ public class asuser {
        // appProps.load(new FileInputStream(appConfigPath));
 
        // prop.setProperty("")
-        System.out.println(System.getProperty("user.dir"));
+       // System.out.println(System.getProperty("user.dir"));
         prop.load(new FileInputStream(new File(System.getProperty("user.dir")+"\\app.properties")));
 
+        as400pwdrest.AES256 aes256 = new as400pwdrest.AES256();
 
 
 
         if(args.length <= 0){
-            System.out.println("Insufficient arguments passed. \nPlease do provide the <userprofile>  <password> <server> to update");
+            System.out.println("Insufficient arguments passed. \n1. Please do provide the <userprofile>  <password> <server> to update");
+            System.out.println(" \n2. To generate an encrypted key pass the key text as the first argument");
             return;
+        }
+        if(args.length == 1){
+            //section for encrypting a passphrase
+            System.out.println(aes256.encrypt(args[0],"secret"));
+            return;
+
         }
         String userId = args[0];
         String password = args[1];
@@ -46,14 +60,15 @@ public class asuser {
             return;
         }
 
+        String decPass = aes256.decrypt(prop.getProperty("password."+system),"secret");
 
-        System.out.println(prop.getProperty("server."+system) + prop.getProperty("username."+system) +prop.getProperty("password."+system).length());
+        //System.out.println(prop.getProperty("server."+system) + prop.getProperty("username."+system) + decPass.length());
 
-        AS400 as400 = new AS400(prop.getProperty("server."+system),prop.getProperty("username."+system),prop.getProperty("password."+system));
+        AS400 as400 = new AS400(prop.getProperty("server."+system),prop.getProperty("username."+system),decPass);
 
         try {
 
-
+            System.out.println("Connecting to :"+prop.getProperty("server."+system));
             as400.connectService(AS400.COMMAND);
             System.out.println("Connected:"+as400.isConnected());
 
