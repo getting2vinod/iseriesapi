@@ -74,8 +74,8 @@ public class asuser {
 
             CommandCall cmd = new CommandCall(as400);
             //String cmdTxt = "dspusrprf usrprf("+userId+")";
-            String cmdTxt = "chgusrprf usrprf("+userId+") password("+password+") status(*enabled)";
-              //    cmdTxt ="chgusrprf usrprf(CCGV5R2EYO) password(OKTABOT) status(*enabled)";
+            String cmdTxt = "chgusrprf usrprf("+userId+") password("+password+") status(*enabled) pwdexp(*yes)";
+              //    cmdTxt ="chgusrprf usrprf(CCGV5R2EYO) password(OKTABOT) status(*enabled) pwdexp(*yes)";
             if(cmd.run(cmdTxt) != true){
                 System.out.println("Not a valid command");
             }
@@ -90,7 +90,7 @@ public class asuser {
 
         }
         catch (Exception e){
-            System.out.print(e.getMessage());
+            System.out.println(e.getMessage());
         }
         finally {
             System.out.println("Disconnecting Service");
