@@ -39,7 +39,7 @@
                     <archive>
                         <manifest>
                             <addClasspath>true</addClasspath>
-                            <mainClass>as400pwdrest.asuser</mainClass>
+                            <mainClass>as400pwdrest.AS400Api</mainClass>
                         </manifest>
                     </archive>
                     <descriptorRefs>

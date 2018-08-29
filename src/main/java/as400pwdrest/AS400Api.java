@@ -15,7 +15,7 @@ import javax.crypto.KeyGenerator;
 
 
 
-public class asuser {
+public class AS400Api {
 
     private static Properties prop = new Properties();
 
@@ -61,41 +61,34 @@ public class asuser {
         public String getNotes() {
             return notes;
         }
+
+        public UserProfile(String username){
+            userName = username;
+        }
     }
 
-    public UserProfile getUserProfile(String userName){
-
+    public UserProfile getUserProfile (String userName){
+        UserProfile up = new UserProfile(userName);
 
         try {
-            as400.connectService(AS400.COMMAND);
-            System.out.println("Connected:"+as400.isConnected());
-
-            CommandCall cmd = new CommandCall(as400);
-            String command = "DSPUSRPRF userprf("+userName+")";
-            if(cmd.run(command) == true){
-
-                AS400Message[] messages = cmd.getMessageList();
-                for(int i = 0;i < messages.length;i++){
-                    up.setNotes(messages[i].getText());
-                    System.out.println(messages[i].getText());
-                }
-
-            }
+            User user = new User(as400,userName);
+           up.notes = user.getDescription();
+           up.active = user.isAuthCollectionActive();
+           up.error = false;
         }
-        catch (Exception e) {
-           up.setError(e.getMessage());
-        }
-        finally {
-            System.out.println("Disconnecting Service");
-            as400.disconnectAllServices();
-            System.out.println("Connected:"+as400.isConnected());
+        catch  (Exception e){
+            //Object might not exist
+            up.error = true;
         }
 
-        return (up);
+        return(up);
+    }
+
+    public boolean setUserProfilePassword(String password){
 
     }
 
-    public UserProfile up = new asuser.UserProfile();
+
 
     public static Boolean runCommand(String command){
         Boolean returnState = true;
@@ -192,18 +185,17 @@ public class asuser {
         as400 = new AS400(prop.getProperty("server."+system),prop.getProperty("username."+system),decPass);
         System.out.println("Connecting to :"+prop.getProperty("server."+system));
 
-        //fetching userprofile
+        AS400Api as400Api = new AS400Api();
 
-       up = new asuser().getUserProfile("OKTABOT");
+        AS400Api.UserProfile up =  as400Api.getUserProfile(userId);
 
-        String cmdTxt = "chgusrprf usrprf("+userId+") password("+password+") "+enable+ " "+expire;
+        if(!up.error){
+            //profile is found
 
-        if(runCommand(cmdTxt)){
-            System.out.println("Command Ran Successfully");
         }
-        else{
-            System.out.println("Not a valid command");
-        }
+
+        System.out.println(up.notes);
+
 
     }
 }
