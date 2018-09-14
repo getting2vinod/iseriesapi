@@ -7,6 +7,7 @@ import java.io.FileInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Enumeration;
 import java.util.Properties;
 import javax.crypto.SecretKey;
 import javax.crypto.KeyGenerator;
@@ -85,7 +86,7 @@ public class AS400Api {
     }
 
     public boolean setUserProfilePassword(String password){
-
+            return true;
     }
 
 
@@ -185,16 +186,25 @@ public class AS400Api {
         as400 = new AS400(prop.getProperty("server."+system),prop.getProperty("username."+system),decPass);
         System.out.println("Connecting to :"+prop.getProperty("server."+system));
 
-        AS400Api as400Api = new AS400Api();
+//        AS400Api as400Api = new AS400Api();
+//
+//        AS400Api.UserProfile up =  as400Api.getUserProfile(userId);
 
-        AS400Api.UserProfile up =  as400Api.getUserProfile(userId);
+        UserList ul = new UserList(as400);
 
-        if(!up.error){
-            //profile is found
-
+        Enumeration list = ul.getUsers();
+        ul.getUsers();
+        while (list.hasMoreElements()){
+            User u = (User) list.nextElement();
+            System.out.println(u.getUserProfileName() + " is AC Active " + u.isAuthCollectionActive());
         }
 
-        System.out.println(up.notes);
+//        if(!up.error){
+//            //profile is found
+//
+//        }
+
+        //System.out.println(up.notes);
 
 
     }
