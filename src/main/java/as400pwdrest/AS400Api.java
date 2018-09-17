@@ -1,5 +1,6 @@
 package as400pwdrest;
 import com.ibm.as400.access.*;
+import com.ibm.as400.security.auth.UserProfilePrincipal;
 
 import javax.annotation.Resource;
 import java.io.FileOutputStream;
@@ -196,7 +197,10 @@ public class AS400Api {
         ul.getUsers();
         while (list.hasMoreElements()){
             User u = (User) list.nextElement();
-            System.out.println(u.getUserProfileName() + " is AC Active " + u.isAuthCollectionActive());
+            UserProfilePrincipal up = new UserProfilePrincipal();
+
+            System.out.println(u.getUserProfileName() + " Active " + u.isAuthCollectionActive() + " AuthCollectionDeleted: " + u.isAuthCollectionDeleted() + " Repo Exists: " + u.isAuthCollectionRepositoryExist());
+            //System.out.println(u.getUserProfileName() + " is AC Active " + u.isAuthCollectionActive());
         }
 
 //        if(!up.error){
