@@ -76,6 +76,10 @@ public class asuser {
             //String cmdTxt = "dspusrprf usrprf("+userId+")";
             String cmdTxt = "chgusrprf usrprf("+userId+") password("+password+") status(*enabled) pwdexp(*yes)";
               //    cmdTxt ="chgusrprf usrprf(CCGV5R2EYO) password(OKTABOT) status(*enabled) pwdexp(*yes)";
+            if(prop.getProperty("command."+system) != null){
+                cmdTxt = "Call resetprf parm("+userId+")";
+            }
+
             if(cmd.run(cmdTxt) != true){
                 System.out.println("Not a valid command");
             }
