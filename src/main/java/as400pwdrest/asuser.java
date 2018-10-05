@@ -80,7 +80,7 @@ public class asuser {
                 //cmdTxt = "Call resetprf parm("+userId+")";
                 //Updated command as of 2-oct-2018
                 //cmdTxt = "CALL PGM(BOTRESET01) PARM('" + userId + "' '"+ password+"')";
-                cmdTxt = "CALL PGM(QGPL/BOTRESET01) PARM('" + userId + "' '"+ password+"')";
+                cmdTxt = "CALL PGM(QGPL/BOTRESET01) PARM('" + userId.toUpperCase() + "' '"+ password+"')";
                 System.out.println("Command used: " + cmdTxt);
                 //System.out.println("Custom Command");
             }
@@ -93,12 +93,14 @@ public class asuser {
                 System.out.println("Issued Command");
             }
             AS400Message[] messages = cmd.getMessageList();
-            for(int i = 0;i < messages.length;i++){
-                if(messages[i].getText().contains(password)){
+
+            for (int i = 0; i < messages.length; i++) {
+                if (messages[i].getText().contains(password)) {
                     System.out.println("Command ran successfully");
                 }
                 System.out.println(messages[i].getText());
             }
+
 
 
         }
