@@ -13,19 +13,21 @@ import javax.crypto.SecretKey;
 import javax.crypto.KeyGenerator;
 import as400pwdrest.aesuser.Auser.*;
 
-
-
+//password reset params
+//$userprofile,$password,$server,$reasonReset
+//Version 1.3 updated to differentiate elevated and non profile.
 
 public class asuser {
 
     private static Properties prop = new Properties();
 
 
-    public static boolean removeProfile(String profileName,String system,as400pwdrest.AES256 aes256){
-        Boolean returnState = false;
+    public static String removeProfile(String profileName,String system,as400pwdrest.AES256 aes256){
+        String returnState = "";
         if(prop.getProperty("server."+system) == null){
             System.out.println("Server resource not found. "+system);
-            return false;
+            returnState = "Error";
+            return returnState;
         }
         String decPass = aes256.decrypt(prop.getProperty("password."+system),"secret");
         AS400 as400 = new AS400(prop.getProperty("server."+system),prop.getProperty("username."+system),decPass);
@@ -33,7 +35,8 @@ public class asuser {
 
             as400.connectService(AS400.COMMAND);
             System.out.println("Connected:"+as400.isConnected());
-            String cmdTxt = "CALL PGM(QGPL/BOTRESET01) PARM('" + profileName.toUpperCase() + "' 'testpass1')";
+            //String cmdTxt = "CALL PGM(QGPL/BOTRESET01) PARM('" + profileName.toUpperCase() + "' 'testpass1')";
+            String cmdTxt = "CALL PGM(BOTUSRDEL) PARM('" + profileName.toUpperCase() + "')";
             System.out.println("Command used: " + cmdTxt);
             CommandCall cmd = new CommandCall(as400);
 
@@ -45,17 +48,25 @@ public class asuser {
                 System.out.println("Issued Command");
             }
             AS400Message[] messages = cmd.getMessageList();
-
+//AS400Message (ID: CRJ0001 text: Profile does not exist.):com.ibm.as400.access.AS400Message@65466a6a
             for (int i = 0; i < messages.length; i++) {
-//                if (messages[i].getText().contains(password)) {
-//                    System.out.println("Command ran successfully");
-//                }
+
+                if (messages[i].getText().contains("Profile does not exist.")) {
+                    returnState = "NotFound";
+                }
+                if (messages[i].getText().contains("Profile has elevated authorities")) {
+                    returnState = "Elevated";
+                }
+                if (messages[i].getText().contains("has been deleted") && (returnState == "")) {
+                    returnState = "Removed";
+                }
                 System.out.println(messages[i].getText());
             }
-            returnState = true;
+
         }
         catch (Exception e){
             System.out.println(e.getMessage());
+            returnState = "Error";
         }
         finally {
             System.out.println("Disconnecting Service");
@@ -88,6 +99,7 @@ public class asuser {
 
         if(args.length <= 0){
             System.out.println("Insufficient arguments passed. \n1. Please do provide the <userprofile>  <password> <server> to update");
+            System.out.println("Or to remove profile . \n1. Please do provide the \"<userprofile>  <server> remove\" to remove profile");
             System.out.println(" \n2. To generate an encrypted key pass the key text as the first argument");
             return;
         }
@@ -110,11 +122,12 @@ public class asuser {
             //should be a remove command
             if(args[2].toLowerCase().equals("remove")){
                 system = args[1];
-                if(removeProfile(userId,system,aes256)){
+                String removeStatus = removeProfile(userId,system,aes256);
+                if(removeStatus == "Removed"){
                     System.out.println("Profile removed successfully.");
                 }
                 else{
-                    System.out.println("Error removing profile.");
+                    System.out.println("Error removing profile. "+removeStatus);
                 }
                 return;
             }
