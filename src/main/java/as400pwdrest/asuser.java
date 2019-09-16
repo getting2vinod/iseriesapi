@@ -13,6 +13,8 @@ import javax.crypto.SecretKey;
 import javax.crypto.KeyGenerator;
 import as400pwdrest.aesuser.Auser.*;
 
+import as400pwdrest.aesuser.*;
+
 //password reset params
 //$userprofile,$password,$server,$reasonReset
 //Version 1.3 updated to differentiate elevated and non profile.
@@ -79,7 +81,64 @@ public class asuser {
         return returnState;
     }
 
+    public static String createProfile(String system,as400pwdrest.AES256 aes256 , String EmpFname, String EmpMinit, String  EmpLname, String Fromtmplt, String PrfTmplt, String EmpNetID, String EmpID, String EmpLoc, String EmpMngr){
+        String returnState = "";
+        if(prop.getProperty("server."+system) == null){
+            System.out.println("Server resource not found. "+system);
+            returnState = "Error";
+            return returnState;
+        }
+        String decPass = aes256.decrypt(prop.getProperty("password."+system),"secret");
+        //Cleaning up params
 
+        AS400 as400 = new AS400(prop.getProperty("server."+system),prop.getProperty("username."+system),decPass);
+        try {
+
+            as400.connectService(AS400.COMMAND);
+            System.out.println("Connected:"+as400.isConnected());
+            //String cmdTxt = "CALL PGM(QGPL/BOTRESET01) PARM('" + profileName.toUpperCase() + "' 'testpass1')";
+            String cmdTxt = "CALL PGM(BOTUSRDEL) PARM('" + "test" + "')";
+            System.out.println("Command used: " + cmdTxt);
+            CommandCall cmd = new CommandCall(as400);
+
+            if(cmd.run(cmdTxt) != true){
+                //System.out.println("Not a valid command");
+                System.out.println("Issued Command");
+            }
+            else{
+                System.out.println("Issued Command");
+            }
+            AS400Message[] messages = cmd.getMessageList();
+//AS400Message (ID: CRJ0001 text: Profile does not exist.):com.ibm.as400.access.AS400Message@65466a6a
+            for (int i = 0; i < messages.length; i++) {
+
+                if (messages[i].getText().contains("Profile does not exist.")) {
+                    returnState = "NotFound";
+                }
+                if (messages[i].getText().contains("Profile has elevated authorities")) {
+                    returnState = "Elevated";
+                }
+                if (messages[i].getText().contains("has been deleted") && (returnState == "")) {
+                    returnState = "Removed";
+                }
+                System.out.println(messages[i].getText());
+            }
+
+        }
+        catch (Exception e){
+            System.out.println(e.getMessage());
+            returnState = "Error";
+        }
+        finally {
+            System.out.println("Disconnecting Service");
+            as400.disconnectAllServices();
+            System.out.println("Connected:"+as400.isConnected());
+        }
+
+
+
+        return returnState;
+    }
 
     public static void main(String args[]) throws Exception {
 //        String systemName = args[0];
@@ -98,9 +157,10 @@ public class asuser {
 
 
         if(args.length <= 0){
-            System.out.println("Insufficient arguments passed. \n1. Please do provide the <userprofile>  <password> <server> to update");
-            System.out.println("Or to remove profile . \n1. Please do provide the \"<userprofile>  <server> remove\" to remove profile");
-            System.out.println(" \n2. To generate an encrypted key pass the key text as the first argument");
+            System.out.println("Insufficient arguments passed. \n1. To Change password pass : <userprofile>  <password> <server> to change password");
+            System.out.println("\n2. To Remove profile pass:  <userprofile>  <server> remove");
+            System.out.println(" \n3. To generate an encrypted key pass the key text as the first argument");
+            System.out.println(" \n4. To create a profile pass: server create EmpFname EmpMinit EmpLname Fromtmplt PrfTmplt EmpNetID EmpID EmpLoc EmpMngr");
             return;
         }
         if(args.length == 1){
@@ -109,9 +169,6 @@ public class asuser {
             return;
 
         }
-
-
-
 
         //section to control account termination
         //arguments would be <profile> <server> "remove"
@@ -147,7 +204,7 @@ public class asuser {
             if (args[3].equals("yes")) {
                 activateOnly = true;
             }
-            if (args[3].equals("create")){
+            if (args[2].equals("create")){
                 createAccount = true;
             }
         }
@@ -161,79 +218,85 @@ public class asuser {
 
 
         String decPass = aes256.decrypt(prop.getProperty("password."+system),"secret");
-        if(createAccount){
-            Auser au = new Auser(prop.getProperty("server."+system),prop.getProperty("username."+system),decPass);
 
-            au.setProfileName(userId.toUpperCase());
-            au.close();
-
-            return;
-
-        }
 
         //System.out.println(prop.getProperty("server."+system) + prop.getProperty("username."+system) + decPass.length());
 
         AS400 as400 = new AS400(prop.getProperty("server."+system),prop.getProperty("username."+system),decPass);
 
-        try {
+        if(createAccount){
 
-            System.out.println("Connecting to :"+prop.getProperty("server."+system));
-            as400.connectService(AS400.COMMAND);
-            System.out.println("Connected:"+as400.isConnected());
+            //    EmpFname         Character format with a length of 15 – This is the Employee first name
+            //    EmpMinit            Character format with a length of 1 – This is the Employee middle initial (it can be null)
+            //    EmpLname         Character format with a length of 20 – This is the Employee Last name (surname)
+            //    Fromtmplt          Character format with a length of 1 – This is whether or not to create the profile from a template. It expects a value of Y or N (it can be null).
+            //    PrfTmplt              Character format with a length of 10 – This is the template profile or the profile name that it should be copied from. This is a required field so it cannot be null.
+            //    EmpNetID           Character format with a length of 13 – This is the employee network ID (AD). This is optional so it can be null.
+            //    EmpID                   Character format with a length of 6 – This is the employee ID number assigned by HR. This is optional so it can be null.
+            //    EmpLoc                Character format with a length of 20 – This is the employee primary location. This is optional so it can be null.
+            //    EmpMngr            Character format with a length of 36 – This is the employee manager. This is optional so it can be null. It’s expecting this in full name format (First name, Middle initial, last name) but will accepted any value that’s 35 characters of less.
+            
 
-            CommandCall cmd = new CommandCall(as400);
-            //String cmdTxt = "dspusrprf usrprf("+userId+")";
-            String cmdTxt = "";
-            if(activateOnly){
-                //cmdTxt = "CHGUSRPRF USRPRF("+userId.toUpperCase()+") STATUS(*ENABLED)";
-                cmdTxt = "CALL PGM(BOTENABLE) PARM('"+userId.toUpperCase()+"')";
-            }
-            else {
-                //    cmdTxt ="chgusrprf usrprf(CCGV5R2EYO) password(OKTABOT) status(*enabled) pwdexp(*yes)";
-                if (prop.getProperty("command." + system) != null) {
-                    //cmdTxt = "Call resetprf parm("+userId+")";
-                    //Updated command as of 2-oct-2018
-                    //cmdTxt = "CALL PGM(BOTRESET01) PARM('" + userId + "' '"+ password+"')";
-
-                    //Verifying user details
-
-                    User usr = new User(as400,"bottst1");
-                    String usrdescription = usr.getDetailInSTRAUTCOL();
-
-                    //usr.refresh();
-                    //String[] usrdescription = usr.getUserOptions();
-                    cmdTxt = "CALL PGM(QGPL/BOTRESET01) PARM('" + userId.toUpperCase() + "' '" + password + "')";
-                    System.out.println("Command used: " + cmdTxt);
-                    //System.out.println("Custom Command");
-                }
-            }
-
-            if(cmd.run(cmdTxt) != true){
-                //System.out.println("Not a valid command");
-                System.out.println("Issued Command");
-            }
-            else{
-                System.out.println("Issued Command");
-            }
-            AS400Message[] messages = cmd.getMessageList();
-
-            for (int i = 0; i < messages.length; i++) {
-                if (messages[i].getText().contains(password)) {
-                    System.out.println("Command ran successfully");
-                }
-                System.out.println(messages[i].getText());
-            }
 
 
 
         }
-        catch (Exception e){
-            System.out.println(e.getMessage());
-        }
-        finally {
-            System.out.println("Disconnecting Service");
-            as400.disconnectAllServices();
-            System.out.println("Connected:"+as400.isConnected());
+        else {
+            try {
+
+                System.out.println("Connecting to :" + prop.getProperty("server." + system));
+                as400.connectService(AS400.COMMAND);
+                System.out.println("Connected:" + as400.isConnected());
+
+                CommandCall cmd = new CommandCall(as400);
+                //String cmdTxt = "dspusrprf usrprf("+userId+")";
+                String cmdTxt = "";
+                if (activateOnly) {
+                    //cmdTxt = "CHGUSRPRF USRPRF("+userId.toUpperCase()+") STATUS(*ENABLED)";
+                    cmdTxt = "CALL PGM(BOTENABLE) PARM('" + userId.toUpperCase() + "')";
+                } else {
+                    //    cmdTxt ="chgusrprf usrprf(CCGV5R2EYO) password(OKTABOT) status(*enabled) pwdexp(*yes)";
+                    if (prop.getProperty("command." + system) != null) {
+                        //cmdTxt = "Call resetprf parm("+userId+")";
+                        //Updated command as of 2-oct-2018
+                        //cmdTxt = "CALL PGM(BOTRESET01) PARM('" + userId + "' '"+ password+"')";
+
+                        //Verifying user details
+
+                        User usr = new User(as400, "bottst1");
+                        String usrdescription = usr.getDetailInSTRAUTCOL();
+
+                        //usr.refresh();
+                        //String[] usrdescription = usr.getUserOptions();
+                        cmdTxt = "CALL PGM(QGPL/BOTRESET01) PARM('" + userId.toUpperCase() + "' '" + password + "')";
+                        System.out.println("Command used: " + cmdTxt);
+                        //System.out.println("Custom Command");
+                    }
+                }
+
+                if (cmd.run(cmdTxt) != true) {
+                    //System.out.println("Not a valid command");
+                    System.out.println("Issued Command");
+                } else {
+                    System.out.println("Issued Command");
+                }
+                AS400Message[] messages = cmd.getMessageList();
+
+                for (int i = 0; i < messages.length; i++) {
+                    if (messages[i].getText().contains(password)) {
+                        System.out.println("Command ran successfully");
+                    }
+                    System.out.println(messages[i].getText());
+                }
+
+
+            } catch (Exception e) {
+                System.out.println(e.getMessage());
+            } finally {
+                System.out.println("Disconnecting Service");
+                as400.disconnectAllServices();
+                System.out.println("Connected:" + as400.isConnected());
+            }
         }
     }
 }
