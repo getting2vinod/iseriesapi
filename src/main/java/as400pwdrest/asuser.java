@@ -97,7 +97,7 @@ public class asuser {
             as400.connectService(AS400.COMMAND);
             System.out.println("Connected:"+as400.isConnected());
             //String cmdTxt = "CALL PGM(QGPL/BOTRESET01) PARM('" + profileName.toUpperCase() + "' 'testpass1')";
-            String cmdTxt = "CALL PGM(BOTUSRCREATE) PARM(" + params + ")";
+            String cmdTxt = "CALL PGM(BOTNEWUSR) PARM(" + params + ")";
             System.out.println("Command used: " + cmdTxt);
             CommandCall cmd = new CommandCall(as400);
 
