@@ -27,7 +27,9 @@ public class auserObj {
     private String EmpMngr; //               Character format with a length of 36 – This is the employee manager. This is optional so it can be null. It’s expecting this in full name format (First name, Middle initial, last name) but will accepted any value that’s 35 characters of less.
 
     public  String generateParam(){
-        return("'"+EmpFname+"' '"+EmpMinit+"' '"+EmpLname+"' '"+Fromtmplt+"' '"+PrfTmplt+"' '"+EmpNetID+"' '"+EmpID+"' '"+EmpLoc+"' '"+EmpMngr+"'");
+        //return("'"+EmpFname+"' '"+EmpMinit+"' '"+EmpLname+"' '"+Fromtmplt+"' '"+PrfTmplt+"' '"+EmpNetID+"' '"+EmpID+"' '"+EmpLoc+"' '"+EmpMngr+"'");
+        //removing Fromtmplt
+        return("'"+EmpFname+"' '"+EmpMinit+"' '"+EmpLname+"' '"+PrfTmplt+"' '"+EmpNetID+"' '"+EmpID+"' '"+EmpLoc+"' '"+EmpMngr+"'");
     }
     public auserObj getAuserObj() {
         return this;

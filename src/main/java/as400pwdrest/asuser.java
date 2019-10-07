@@ -18,6 +18,8 @@ import as400pwdrest.aesuser.Auser.*;
 //password reset params
 //$userprofile,$password,$server,$reasonReset
 //Version 1.3 updated to differentiate elevated and non profile.
+// TO Build jar
+//C:\Users\rle0013.RLPL\Downloads\apache-maven-3.3.9\bin\mvn clean install
 
 public class asuser {
 
@@ -97,7 +99,7 @@ public class asuser {
             as400.connectService(AS400.COMMAND);
             System.out.println("Connected:"+as400.isConnected());
             //String cmdTxt = "CALL PGM(QGPL/BOTRESET01) PARM('" + profileName.toUpperCase() + "' 'testpass1')";
-            String cmdTxt = "CALL PGM(BOTNEWUSR) PARM(" + params + ")";
+            String cmdTxt = "CALL SCHCRTPRFT PARM(" + params + ")";
             System.out.println("Command used: " + cmdTxt);
             CommandCall cmd = new CommandCall(as400);
 
@@ -229,7 +231,7 @@ public class asuser {
             //    EmpFname         Character format with a length of 15 – This is the Employee first name
             //    EmpMinit            Character format with a length of 1 – This is the Employee middle initial (it can be null)
             //    EmpLname         Character format with a length of 20 – This is the Employee Last name (surname)
-            //    Fromtmplt          Character format with a length of 1 – This is whether or not to create the profile from a template. It expects a value of Y or N (it can be null).
+            //    Fromtmplt   (To Eliminate - 30 sep)       Character format with a length of 1 – This is whether or not to create the profile from a template. It expects a value of Y or N (it can be null).
             //    PrfTmplt              Character format with a length of 10 – This is the template profile or the profile name that it should be copied from. This is a required field so it cannot be null.
             //    EmpNetID           Character format with a length of 13 – This is the employee network ID (AD). This is optional so it can be null.
             //    EmpID                   Character format with a length of 6 – This is the employee ID number assigned by HR. This is optional so it can be null.
