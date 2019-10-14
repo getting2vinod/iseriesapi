@@ -228,17 +228,19 @@ public class asuser {
         AS400 as400 = new AS400(prop.getProperty("server."+system),prop.getProperty("username."+system),decPass);
         if(createAccount){
 
-            //    EmpFname         Character format with a length of 15 – This is the Employee first name
-            //    EmpMinit            Character format with a length of 1 – This is the Employee middle initial (it can be null)
-            //    EmpLname         Character format with a length of 20 – This is the Employee Last name (surname)
-            //    Fromtmplt   (To Eliminate - 30 sep)       Character format with a length of 1 – This is whether or not to create the profile from a template. It expects a value of Y or N (it can be null).
-            //    PrfTmplt              Character format with a length of 10 – This is the template profile or the profile name that it should be copied from. This is a required field so it cannot be null.
-            //    EmpNetID           Character format with a length of 13 – This is the employee network ID (AD). This is optional so it can be null.
-            //    EmpID                   Character format with a length of 6 – This is the employee ID number assigned by HR. This is optional so it can be null.
-            //    EmpLoc                Character format with a length of 20 – This is the employee primary location. This is optional so it can be null.
-            //    EmpMngr            Character format with a length of 36 – This is the employee manager. This is optional so it can be null. It’s expecting this in full name format (First name, Middle initial, last name) but will accepted any value that’s 35 characters of less.
+            //    EmpFname  args[2]       Character format with a length of 15 – This is the Employee first name
+            //    EmpMinit    args[3]        Character format with a length of 1 – This is the Employee middle initial (it can be null)
+            //    EmpLname    args[4]     Character format with a length of 20 – This is the Employee Last name (surname)
+            //    Fromtmplt  args[5] (To Eliminate - 30 sep)       Character format with a length of 1 – This is whether or not to create the profile from a template. It expects a value of Y or N (it can be null).
+            //    PrfTmplt    args[6]          Character format with a length of 10 – This is the template profile or the profile name that it should be copied from. This is a required field so it cannot be null.
+            //    EmpNetID   args[7]        Character format with a length of 13 – This is the employee network ID (AD). This is optional so it can be null.
+            //    EmpID      args[8]             Character format with a length of 6 – This is the employee ID number assigned by HR. This is optional so it can be null.
+            //    EmpLoc      args[9]          Character format with a length of 20 – This is the employee primary location. This is optional so it can be null.
+            //    EmpMngr    args[10]       Character format with a length of 36 – This is the employee manager. This is optional so it can be null. It’s expecting this in full name format (First name, Middle initial, last name) but will accepted any value that’s 35 characters of less.
+
 
             auserObj auo = new auserObj(args[2],args[3],args[4],args[5],args[6],args[7],args[8],args[9],args[10]);
+            //args[5] will be removed in generateParam.
             String cmd = auo.generateParam();
             System.out.println("Generated call" + cmd);
             String stdout = createProfile(system, aes256, cmd);
