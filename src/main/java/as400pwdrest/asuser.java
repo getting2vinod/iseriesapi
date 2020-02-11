@@ -1,7 +1,6 @@
 package as400pwdrest;
 import as400pwdrest.aesuser.Auser;
 import com.ibm.as400.access.*;
-
 import javax.annotation.Resource;
 import java.io.FileOutputStream;
 import java.io.FileInputStream;
@@ -18,9 +17,16 @@ import as400pwdrest.aesuser.Auser.*;
 //password reset params
 //$userprofile,$password,$server,$reasonReset
 //Version 1.3 updated to differentiate elevated and non profile.
+
+//profile create params
+//create server "firstname" "initials" "lastname" "y" "template"  "" "empid" "location" "Designation"
+//ex. create SCNJ400A "bottst1" "" "test" "y" "BCTELJ"  "" "935673" "NY" "BOTManger"
 // TO Build jar
 //C:\Users\rle0013.RLPL\Downloads\apache-maven-3.3.9\bin\mvn clean install
 
+//build 1.5 = get next profile available for Firstname and lastname on server or based on template
+//ex. java -jar as400pwdrest-1.5-SNAPSHOT-jar-with-dependencies.jar generateprofile "bfwmsprd" "bot" "dtsta"
+//ex. java -jar as400pwdrest-1.5-SNAPSHOT-jar-with-dependencies.jar getnexttemplateprofile "SCHJC400" "WHSEUSR" 100
 public class asuser {
 
     private static Properties prop = new Properties();
@@ -121,7 +127,7 @@ public class asuser {
                 if (messages[i].getText().contains("has been created") && (returnState == "")) {
                     returnState = "Created";
                 }
-                System.out.println(messages[i].getText());
+                System.out.println("System Response: "+messages[i].getText());
             }
 
         }
@@ -150,6 +156,8 @@ public class asuser {
 
        // prop.setProperty("")
        // System.out.println(System.getProperty("user.dir"));
+
+        //return;
         prop.load(new FileInputStream(new File(System.getProperty("user.dir")+"\\app.properties")));
 
         as400pwdrest.AES256 aes256 = new as400pwdrest.AES256();
@@ -170,7 +178,47 @@ public class asuser {
 
         }
 
+        //implementing profile check v. 1.5
+        if(args[0].toLowerCase().equals("generateprofile")){
+            if(args.length == 4){
+                System.out.println("Fetching next available profile in " + args[1].toUpperCase() +" for " + args[2].toUpperCase() + " " + args[3].toUpperCase());
+                //server, fn, ln
+                String aprof = getNextProfile(aes256, args[1].toUpperCase(), args[2].toUpperCase(), args[3].toUpperCase());
+                if(!aprof.contains("error")){
+                    System.out.println("NextProfile:");
+                    System.out.println(aprof.toUpperCase());
+                    System.out.println("EndProfile:");
+                }
+                else{
+                    System.out.println("Error:"+aprof.toString());
+                }
 
+            }
+            else{
+                System.out.println("Would require <server>  <firstname> <lastname> to fetch");
+            }
+            System.exit(0);
+        }
+        if(args[0].toLowerCase().equals("getnexttemplateprofile")){
+            if(args.length == 4){
+                System.out.println("Fetching next available profile in " + args[1].toUpperCase() +" for " + args[2].toUpperCase() + " " + args[3].toUpperCase());
+                //server, fn, ln
+                String aprof = getNextProfile(aes256, args[1].toUpperCase(), args[2].toUpperCase(), Integer.valueOf(args[3]));
+                if(!aprof.contains("error")){
+                    System.out.println("NextProfile:");
+                    System.out.println(aprof.toUpperCase());
+                    System.out.println("EndProfile:");
+                }
+                else{
+                    System.out.println("Error:"+aprof.toString());
+                }
+
+            }
+            else{
+                System.out.println("Would require <server>  <template> <seriesfrom> to fetch");
+            }
+            System.exit(0);
+        }
 
 
         //section to control account termination
@@ -237,9 +285,9 @@ public class asuser {
             //    EmpID      args[8]             Character format with a length of 6 – This is the employee ID number assigned by HR. This is optional so it can be null.
             //    EmpLoc      args[9]          Character format with a length of 20 – This is the employee primary location. This is optional so it can be null.
             //    EmpMngr    args[10]       Character format with a length of 36 – This is the employee manager. This is optional so it can be null. It’s expecting this in full name format (First name, Middle initial, last name) but will accepted any value that’s 35 characters of less.
+           //     EmpEmail;  args[11]//  Character 40 would send the email address of the account. Optional added on 10/14/19
 
-
-            auserObj auo = new auserObj(args[2],args[3],args[4],args[5],args[6],args[7],args[8],args[9],args[10]);
+            auserObj auo = new auserObj(args[2],args[3],args[4],args[5],args[6],args[7],args[8],args[9],args[10], args[11]);
             //args[5] will be removed in generateParam.
             String cmd = auo.generateParam();
             System.out.println("Generated call" + cmd);
@@ -306,4 +354,105 @@ public class asuser {
             }
         }
     }
+    public static String getNextProfile(as400pwdrest.AES256 aes256, String system, String template, Integer series){
+        String returnVal = "";
+        if(prop.getProperty("server."+system) == null){
+            System.out.println("Server resource not found. "+system);
+            returnVal = "Error. Server resource not found";
+            return returnVal;
+        }
+        String decPass = aes256.decrypt(prop.getProperty("password."+system),"secret");
+        //Cleaning up params
+
+        AS400 as400 = new AS400(prop.getProperty("server."+system),prop.getProperty("username."+system),decPass);
+
+
+        //AS400 system = new AS400("bfwmsprd","bottest","classic4");
+        try {
+            as400.connectService(AS400.COMMAND);
+            //looping to increment profile by 1
+            Integer i = series;
+            Boolean available = false;
+            String newprofname = template+ String.valueOf(i);
+
+            do{
+//                CommandCall cmd = new CommandCall(system);
+//                String userprofile = "botdtsta7";
+                User usr = new User(as400, newprofname);
+                i++;
+                if(!usr.exists()){
+                    available = true;
+                    returnVal = newprofname;
+                }
+                else{
+                    newprofname = template+ String.valueOf(i);
+                }
+            }while (i < series+10 && !available);
+            // System.out.println("NextProfile:"+returnVal);
+        }
+        catch (Exception e){
+            returnVal += "Error:"+e.getMessage();
+        }
+        finally {
+            System.out.println("Disconnecting Service");
+            as400.disconnectAllServices();
+            System.out.println("Connected:"+as400.isConnected());
+        }
+        return returnVal;
+    }
+
+    public static String getNextProfile(as400pwdrest.AES256 aes256, String system, String fn, String ln){
+        String returnVal = "";
+        if(prop.getProperty("server."+system) == null){
+            System.out.println("Server resource not found. "+system);
+            returnVal = "Error. Server resource not found";
+            return returnVal;
+        }
+        String decPass = aes256.decrypt(prop.getProperty("password."+system),"secret");
+        //Cleaning up params
+
+        AS400 as400 = new AS400(prop.getProperty("server."+system),prop.getProperty("username."+system),decPass);
+
+
+        //AS400 system = new AS400("bfwmsprd","bottest","classic4");
+        try {
+            as400.connectService(AS400.COMMAND);
+            //looping to increment profile by 1
+            int i = 0;
+            ln = ln.replaceAll("[^a-zA-Z]", "");
+            fn = fn.replaceAll("[^a-zA-Z]", "");
+            Boolean available = false;
+            String newprofname = fn.substring(0,1);
+            if(ln.length() > 8){
+                newprofname +=  ln.substring(0,8);
+            }
+            else{
+                newprofname +=  ln.substring(0,ln.length());
+            }
+            do{
+//                CommandCall cmd = new CommandCall(system);
+//                String userprofile = "botdtsta7";
+                User usr = new User(as400, newprofname);
+                i++;
+                if(!usr.exists()){
+                    available = true;
+                    returnVal = newprofname;
+                }
+                else{
+                    newprofname += Integer.toString(i);
+                }
+            }while (i < 10 && !available);
+           // System.out.println("NextProfile:"+returnVal);
+        }
+        catch (Exception e){
+            returnVal += "Error:"+e.getMessage();
+        }
+        finally {
+            System.out.println("Disconnecting Service");
+            as400.disconnectAllServices();
+            System.out.println("Connected:"+as400.isConnected());
+        }
+        return returnVal;
+    }
+
 }
